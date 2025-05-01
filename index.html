@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Smart Search & Logger</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        width: 100%;
+        background-color: lightblue;
+      }
+      input {
+        padding: 0.5rem;
+        display: flex;
+        margin: 1rem auto;
+      }
+    </style>
+  </head>
+  <body>
+    <input type="text" id="searchBox" placeholder="Type something..." />
+    <h2 id="result"></h2>
+    <script>
+      const input = document.getElementById("searchBox");
+      const result = document.getElementById("result");
+      function curryLogger(type) {
+        return function (message) {
+          console.log(`(${type}) - ${message}`);
+        };
+      }
+      const log = curryLogger("INFO");
+      function throttle(func, limit) {
+        let lastCall = 0;
+        return function (...args) {
+          const now = Date.now();
+          if (now - lastCall >= limit) {
+            lastCall = now;
+            func.apply(this, args);
+          }
+        };
+      }
+      function debounce(func, delay) {
+        let timer;
+        return function (...args) {
+          clearTimeout(timer);
+          timer = setTimeout(() => func.apply(this, args), delay);
+        };
+      }
+      function fakeFetch(query) {
+        return new Promise((resolve) => {
+          setTimeout(
+            () => resolve([query.toUpperCase(), "RESULT1", "RESULT2"]),
+            1000
+          );
+        });
+      }
+      function cleanData(data) {
+        return data.map((item) => item.trim());
+      }
+      function formatData(data) {
+        return data.join(", ");
+      }
+      const throttledLogger = throttle(
+        (e) => log(`Throttled keystroke: ${e.target.value}`),
+        500
+      );
+      const debouncedSearch = debounce((e) => {
+        log("Debounced search triggered");
+        fakeFetch(e.target.value)
+          .then(cleanData)
+          .then(formatData)
+          .then((res) => (result.innerText = `Results: ${res}`));
+      }, 1000);
+      input.addEventListener("input", (e) => {
+        throttledLogger(e);
+        debouncedSearch(e);
+      });
+    </script>
+  </body>
+</html>
